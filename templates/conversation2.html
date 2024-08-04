@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversation AI Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .left-column {
+            width: 48%;
+        }
+        .right-column {
+            width: 48%;
+        }
+        .controls {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #3498db;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+        }
+        select, button {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        h3 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        #local_video, #remote_video {
+            width: 100%;
+            height: 200px;
+            background-color: #000;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 2px solid #3498db;
+            border-radius: 4px;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+        }
+        #conversation-log {
+            min-height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Conversation AI Demo</h1>
+    <div class="container">
+        <div class="left-column">
+            <div class="controls">
+                <div class="input-group">
+                    <label for="userid">User ID:</label>
+                    <input type="text" id="userid" name="userid" placeholder="Enter User ID">
+                </div>
+                <div class="input-group">
+                    <label for="roomid">Room ID:</label>
+                    <input type="text" id="roomid" name="roomid" placeholder="Enter Room ID">
+                </div>
+                <div>
+                    <label for="asr_language">STT语言:</label>
+                    <select id="asr_language">
+                        <option value="zh">中文</option>
+                        <option value="zh-TW">中文-繁体</option>
+                        <option value="en">英文</option>
+                        <option value="vi">越南语</option>
+                        <option value="ja">日语</option>
+                        <option value="ko">韩语</option>
+                        <option value="id">印度尼西亚语</option>
+                        <option value="th">泰语</option>
+                        <option value="pt">葡萄牙语</option>
+                        <option value="tr">土耳其语</option>
+                        <option value="ar">阿拉伯语</option>
+                        <option value="es">西班牙语</option>
+                        <option value="hi">印地语</option>
+                        <option value="fr">法语</option>
+                    </select>
+                </div>
+                <div>
+                    <button id="join">Start</button>
+                    <button id="leave">Stop</button>
+                </div>
+            </div>
+            <div>
+                <h3>实时字幕</h3>
+                <textarea id="subtitle-text-place" readonly></textarea>
+            </div>
+            <div>
+                <h3>对话记录</h3>
+                <textarea id="transcription-text-place" readonly></textarea>
+            </div>
+        </div>
+        <div class="right-column">
+            <div>
+                <h3>Local Video</h3>
+                <div id="local_video"></div>
+            </div>
+            <div>
+                <h3>Remote Video</h3>
+                <div id="remote_video"></div>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://web.sdk.qcloud.com/trtc/webrtc/v5/test/latest/dist/trtc.js"></script>
+
+<script type="module">
+    function query() {
+        const res={}
+        const search = location.search.substr(1)
+        // search.split('&')：["a=100", "b=20", "c=30"]
+        search.split('&').forEach(item => {
+          const arr =item.split('=')
+          const key=arr[0]
+          const val=arr[1]
+          res[key]=val
+        });
+        return res
+    }
+    function generateMixed(n) {
+        let str = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']; // 10个数字
+        let res = "";
+        for(var i = 0; i < n ; i ++) {
+            var id = Math.ceil(Math.random()*9);
+            res += str[id];
+        }
+        return res; // 这里res所有的随机值个数有10的n次方
+    }
+
+    let allQuery = query();
+
+    let baseURL = 'http://' + window.location.hostname;
+    if (window.location.port) {
+        baseURL += ':' + window.location.port;
+    }
+
+    console.error(baseURL);
+
+    let userId;
+    if ('userid' in allQuery) {
+        userId = allQuery["userid"];
+    } else {
+        userId = generateMixed(4); // 1w个用户
+    }
+    let roomId;
+    if ('roomid' in allQuery) {
+        roomId = parseInt(allQuery["roomid"], 10);
+    } else {
+        roomId = Math.floor(Math.random() * 10000) + 10000;;
+    }
+    let localSdkappId = "";
+    if ('sdkappid' in allQuery) {
+        localSdkappId = parseInt(allQuery["sdkappid"], 10);
+    }
+    let localSecretKey = "";
+    if ('secretkey' in allQuery) {
+        localSecretKey = allQuery["secretkey"];
+    }
+
+    let userSig = "";
+
+    let robotUserId = "";
+    let robotUserSig = "";
+    
+    let trtcSdkAppid;
+    let subtitleMsg = [];
+    let trtcClient;
+
+    let fileVideoTrack;
+    let fileAudioTrack;
+
+    let taskId;
+
+    window.localStorage.setItem('debug', '*WARN* *ERROR* *DEBUG*');
+
+    let localVideo = document.getElementById('local_video');
+    let remoteVideo = document.getElementById('remote_video');
+    let joinBtn = document.getElementById('join');
+    let leaveBtn = document.getElementById('leave');
+    let userItem = document.getElementById('userid');
+    let roomItem = document.getElementById('roomid');
+    let asrLanguageSelect = document.getElementById('asr_language');
+    let subtitleText = document.getElementById('subtitle-text-place');
+    let transcriptionText = document.getElementById('transcription-text-place');
+    userItem.value = userId;
+    roomItem.value = roomId;
+
+    joinBtn.addEventListener("click", join);
+    leaveBtn.addEventListener("click", leave);
+
+    let state = "leave"; // leave -> join -> transcription -> join -> leave
+
+    function changeState(s) {
+        state = s;
+        if (state == "leave") {
+            joinBtn.disabled = false;
+            leaveBtn.disabled = true;
+            subtitleText.value = "";
+            transcriptionText.value = "";
+        } else if (state == "join") {
+            joinBtn.disabled = true;
+            leaveBtn.disabled = false;
+        } else if (state == "transcription") {
+            joinBtn.disabled = true;
+            leaveBtn.disabled = true;
+        }
+    }
+    changeState("leave");
+
+    async function RequestCloudApi({ action, payload }) {
+        let res = await fetch(baseURL + '/action', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Action": action
+            },
+            body: payload
+        });
+        return res;
+    }
+
+    async function startAIConversation() {
+        roomId = roomItem.value;
+        const data = {
+            "SdkAppId": trtcSdkAppid,
+            "RoomId": roomId,
+            "AgentConfig": {
+                "UserId": robotUserId,
+                "UserSig": robotUserSig,
+            },
+            "STTConfig": {
+                "Language": asrLanguageSelect.value,
+            }
+        }
+        //data["AgentConfig"]["AgentMode"] = 1;
+        data["AgentConfig"]["TargetUserId"] = userItem.value;
+
+        data["LLMConfig"] = "";
+        data["TTSConfig"] = "";
+
+        const options = {
+            action: "StartAIConversation",
+            payload: JSON.stringify(data),
+        }
+        try {
+            let res = await RequestCloudApi(options);
+            let resJson = await res.json()
+            console.log(resJson);
+            taskId = resJson.TaskId;
+        } catch (error) {
+            console.error(error);
+        }
+
+        changeState("transcription");
+    }
+
+    async function stopAIConversation() {
+        const data = {
+            "TaskId": taskId,
+        }
+        const options = {
+            action: "StopAIConversation",
+            payload: JSON.stringify(data),
+        }
+        try {
+            let res = await RequestCloudApi(options);
+            let resJson = await res.json()
+            console.log(resJson);
+        } catch (error) {
+            console.error(error);
+        }
+        changeState("join");
+    }
+
+
+    function sleep(time) {
+        return new Promise((resolve) => setTimeout(resolve, time));
+    }
+
+    function handleMessage(data) {
+        function refreash_subtitle() {
+            let displayText = ""
+            for (let i = 0; i < subtitleMsg.length; i++) {
+                displayText += `${subtitleMsg[i].userid}: ${subtitleMsg[i].text}\n`;
+                if (subtitleMsg[i].translation_text != "") {
+                    displayText += `${subtitleMsg[i].userid}: ${subtitleMsg[i].translation_text}\n`;
+                }
+            }
+            subtitleText.value = displayText;
+        }
+
+        if (data.type == "subtitle") {
+            // 实时的字幕
+            let exist = false;
+            for (let i = 0; i < subtitleMsg.length; i++) {
+                if (data.userid == subtitleMsg[i].userid) {
+                    subtitleMsg[i].text = data.text;
+                    subtitleMsg[i].translation_text = data.translation_text;
+                    exist = true;
+                    break;
+                }
+            }
+            if (!exist) {
+                subtitleMsg.push({ userid: data.userid, text: data.text, translation_text: data.translation_text });
+            }
+
+            refreash_subtitle();
+        } else if (data.type == "transcription") {
+            // 一句话识别完成 
+            let index = 0;
+            for (let i = 0; i < subtitleMsg.length; i++) {
+                if (data.userid == subtitleMsg[i].userid) {
+                    subtitleMsg[i].text = data.text;
+                    subtitleMsg[i].translation_text = data.translation_text;
+                    index = i;
+                    break;
+                }
+            }
+            refreash_subtitle();
+
+            let content = `${data.start_time}->${data.end_time}  ${data.userid}: ${data.text}\n`
+            if (data.translation_text != "") {
+                content += `${data.start_time}->${data.end_time}  ${data.userid}: ${data.translation_text}\n`
+            }
+            transcriptionText.value += content;
+        }
+    }
+
+    async function join() {
+        userId = userItem.value;
+        robotUserId = userItem.value + "_robot";
+        roomId = parseInt(roomItem.value, 10);
+        let data;
+        data = {
+            "userid": userId,
+            "robot_userid": robotUserId,
+            "msg_type": "trtc",
+        }
+        const options = {
+            action: "join",
+            payload: JSON.stringify(data),
+        }
+        try {
+            let res = await RequestCloudApi(options);
+            let resJson = await res.json();
+            console.log(resJson);
+            trtcSdkAppid = resJson.sdkappid;
+            userSig = resJson.usersig;
+            robotUserSig = resJson.robot_usersig;
+        } catch (error) {
+            console.error(error);
+        }
+
+        trtcClient = TRTC.create()
+
+        trtcClient.on(TRTC.EVENT.REMOTE_VIDEO_AVAILABLE, ({ userId, streamType }) => {
+            // 为了播放视频画面，您需在 DOM 中放置一个 HTMLElement，可以是一个 div 标签，假设其 id 为 `${userId}_${streamType}`
+            const view = 'remote_video';
+            trtcClient.startRemoteVideo({ userId, streamType, view });
+        });
+
+        trtcClient.on(TRTC.EVENT.CUSTOM_MESSAGE, (event) => {
+            let data = new TextDecoder().decode(event.data);
+            let jsonData = JSON.parse(data);
+            console.log(`receive custom msg from ${event.userId} cmdId: ${event.cmdId} seq: ${event.seq} data: ${data}`);
+            handleMessage(jsonData);
+        });
+
+        try {
+            await trtcClient.enterRoom({ roomId: roomId, scene:'rtc', sdkAppId:trtcSdkAppid, userId, userSig});
+            console.log('进房成功');
+        } catch (error) {
+            console.error('进房失败 ' + error);
+        }
+
+        await trtcClient.startLocalVideo({ view:'local_video' });
+        await trtcClient.startLocalAudio();
+
+        await startAIConversation();
+        changeState("join");
+    }
+
+
+    async function leave() {
+        await stopAIConversation();
+        await trtcClient.exitRoom(); 
+        // 退房成功后，若后续无需使用 trtc 实例，则可以调用 trtc.destroy 方法销毁实例，及时释放相关资源。销毁后的 trtc 实例无法继续使用，需要重新创建新的实例。
+        trtcClient.destroy();
+
+        changeState("leave");
+        userSig = "";
+    }
+</script>
+
+</html>
