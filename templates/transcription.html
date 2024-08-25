@@ -267,6 +267,7 @@
     }
 
     function handleMessage(data) {
+
         function refreash_subtitle() {
             let displayText = ""
             for (let i = 0; i < subtitleMsg.length; i++) {
@@ -278,38 +279,40 @@
             subtitleText.value = displayText;
         }
 
-        if (data.type == "subtitle") {
+        console.log(data);
+
+        if (data.type == 10000 && data.payload.end == false) {
             // 实时的字幕
             let exist = false;
             for (let i = 0; i < subtitleMsg.length; i++) {
-                if (data.userid == subtitleMsg[i].userid) {
-                    subtitleMsg[i].text = data.text;
-                    subtitleMsg[i].translation_text = data.translation_text;
+                if (data.sender == subtitleMsg[i].userid) {
+                    subtitleMsg[i].text = data.payload.text;
+                    subtitleMsg[i].translation_text = data.payload.translation_text;
                     exist = true;
                     break;
                 }
             }
             if (!exist) {
-                subtitleMsg.push({ userid: data.userid, text: data.text, translation_text: data.translation_text });
+                subtitleMsg.push({ userid: data.sender, text: data.payload.text, translation_text: data.payload.translation_text });
             }
 
             refreash_subtitle();
-        } else if (data.type == "transcription") {
+        } else if (data.type == 10000 && data.payload.end == true) {
             // 一句话识别完成 
             let index = 0;
             for (let i = 0; i < subtitleMsg.length; i++) {
-                if (data.userid == subtitleMsg[i].userid) {
-                    subtitleMsg[i].text = data.text;
-                    subtitleMsg[i].translation_text = data.translation_text;
+                if (data.sender == subtitleMsg[i].userid) {
+                    subtitleMsg[i].text = data.payload.text;
+                    subtitleMsg[i].translation_text = data.payload.translation_text;
                     index = i;
                     break;
                 }
             }
             refreash_subtitle();
 
-            let content = `${data.start_time}->${data.end_time}  ${data.userid}: ${data.text}\n`
-            if (data.translation_text != "") {
-                content += `${data.start_time}->${data.end_time}  ${data.userid}: ${data.translation_text}\n`
+            let content = `${data.payload.start_time}->${data.payload.end_time}  ${data.sender}: ${data.payload.text }\n`
+            if (data.payload.translation_text != "") {
+                content += `${data.payload.start_time}->${data.payload.end_time}  ${data.sender}: ${data.payload.translation_text}\n`
             }
             transcriptionText.value += content;
         }

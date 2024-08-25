@@ -223,6 +223,8 @@
         //data["AgentConfig"]["AgentMode"] = 1;
         data["AgentConfig"]["TargetUserId"] = userItem.value;
 
+    
+
         data["LLMConfig"] = "";
         data["TTSConfig"] = "";
 
@@ -277,6 +279,48 @@
             subtitleText.value = displayText;
         }
 
+        console.log(data);
+
+        if (data.type == 10000 && data.payload.end == false) {
+            // 实时的字幕
+            let exist = false;
+            for (let i = 0; i < subtitleMsg.length; i++) {
+                if (data.sender == subtitleMsg[i].userid) {
+                    subtitleMsg[i].text = data.payload.text;
+                    subtitleMsg[i].translation_text = data.payload.translation_text;
+                    exist = true;
+                    break;
+                }
+            }
+            if (!exist) {
+                subtitleMsg.push({ userid: data.sender, text: data.payload.text, translation_text: data.payload.translation_text });
+            }
+
+            refreash_subtitle();
+        } else if (data.type == 10000 && data.payload.end == true) {
+            // 一句话识别完成 
+            let index = 0;
+            for (let i = 0; i < subtitleMsg.length; i++) {
+                if (data.sender == subtitleMsg[i].userid) {
+                    subtitleMsg[i].text = data.payload.text;
+                    subtitleMsg[i].translation_text = data.payload.translation_text;
+                    index = i;
+                    break;
+                }
+            }
+            refreash_subtitle();
+
+            let content = `${data.payload.start_time}->${data.payload.end_time}  ${data.sender}: ${data.payload.text }\n`
+            if (data.payload.translation_text != "") {
+                content += `${data.payload.start_time}->${data.payload.end_time}  ${data.sender}: ${data.payload.translation_text}\n`
+            }
+            transcriptionText.value += content;
+        }
+
+
+        // subtitle and transcription  is deprecated
+        // subtitle and transcription  is deprecated
+        // subtitle and transcription  is deprecated
         if (data.type == "subtitle") {
             // 实时的字幕
             let exist = false;
