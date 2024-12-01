@@ -108,11 +108,14 @@ async def request_start_ai_conversation(body_json, action):
         },
         "RoomIdType": 0,
         "STTConfig": {
-            "Language": body_json["STTConfig"]["Language"],
+            "Language": '16k_zh_en',  # body_json["STTConfig"]["Language"]'',
         },
         "LLMConfig": body_json["LLMConfig"],
         "TTSConfig": body_json["TTSConfig"],
     }
+
+    print(f"request_start_ai_conversation params {params}")
+
     req.from_json_string(json.dumps(params))
 
     # 返回的resp是一个StartAIConversationResponse的实例，与请求对象对应
